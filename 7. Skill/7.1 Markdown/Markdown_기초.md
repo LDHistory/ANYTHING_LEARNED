@@ -6,7 +6,7 @@ Github에서 주로 사용되므로 알아두면 편리하게 사용이 가능�
 ___
 
 # 2. 사용법
-## 2.1 Headers
+## **2.1 Headers**
 <pre>
 <code>
 # 제목 1
@@ -48,3 +48,19 @@ ___
 제목 2
 -----
 ___
+</br>
+
+## 2.2 **BlockQuote**
+인용 문구를 표시할 떄 사용되며 아래와 같이 사용한다.
+<pre>
+<code>
+> First
+>   > Second
+>   >   > Third
+</code>
+</pre>
+
+## **결과**
+> First
+>   > Second
+>   >   > Third
