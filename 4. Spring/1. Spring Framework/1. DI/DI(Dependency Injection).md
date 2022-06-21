@@ -1,0 +1,82 @@
+# DI(Dependency Injection)
+엔터프라이즈 애플리케이션을 개발할 때는 하나의 처리를 수행하기 위해 여러 개의 컴포넌트를 조합해서 구현하는 경우가 일반적이다. 이때 사용되는 컴포넌트에는 '공통으로 사용되는 기능을 따로 분리한 컴포넌트', 'DB에 접근하기 위한 컴포넌트' 등이 될 수 있다. </br>
+
+이처럼 하나의 처리를 구현하기 위해 여러 개의 컴포넌트를 통합할 때 읜존성 주입이라는 접근 방식이 큰 힘을 발휘한다. 아래의 코드를 예를 들어 알아보자.
+</br>
+
+```java
+// 사용자 등록을 처리하는 인터페이스
+public interface UserService {
+    void register(User user, String rawPassword);
+}
+```
+```java
+// 패스워드를 해시화하는 인터페이스
+public interface PasswordEncoder {
+    String encode(CharSequence rawPassword);
+}
+```
+```java
+// 사용자 정보를 관리하는 인터페이스
+public interface UserRepository {
+    User save(User user);
+    int countByUsername(String username);
+}
+```
+```java
+// 사용자 등록을 처리하는 구현 클래스
+public class UserServiceImpl implements UserService {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public UserServiceImpl(DataSource dataSource) {
+        this.userRepository = new JdbcUserRepository(dataSource);
+        this.passwordEncoder = new BCryptPasswordEncoder();
+    }
+
+    public void register(User user, String rawPassword) {
+        if (this.userRepository.countByUsername(user.getUsername()) > 0) {
+            throw new UserAlreadyRegisteredException();
+        }
+
+        user.setPassword(this.passwordEncoder.encode(rawPassword));
+        this.userRepository.save(user);
+    }
+}
+```
+
+해당 예제에서는 생성자에서 userRepository와 passwordEncoder를 초기화하기 위해 UserRepository와 PasswordEncoder의 구현 클래스를 직접 생성해서 할당한다. </br>
+
+__따라서 UserServiceImpl 클래스를 개발하는 단계에서는 의존하는 컴포넌트의 클래스가 이미 완성돼 있어야 한다. 이처럼 필요한 컴포넌트를 생성자에서 직접 생성하는 방식은 일단 클래스가 생성되고 나면 이미 생성된 UserRepository나 PasswordEncoder의 구현 클래스를 교체하는 것이 사실상 어려울 수 있다.__ </br>
+
+이러한 클래스 간의 관계를 두고 '**클래스 간의 결합도가 높다**' 라고 말한다. </br>
+
+결합도를 낮추기 위해서는 UserRepository와 PasswordEncoder의 구현 클래스를 직접 생성하는 대신, 다음과 같이 생성자의 인수로 받아서 할당하는 방법을 생각해볼 수 있다.
+
+```java
+public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    this.userRepository = userRepository;
+    this.passwordEncoder = passwordEncoder;
+}
+```
+
+이렇게 하면 UserServiceImpl의 소스코드 안에서 UserRepository와 PasswordEncoder의 구현 클래스 정보가 제거되어 UserServiceImpldml 외부에서 UserRepository와  PasswordEncoder의 구현체를 쉽게 변경할 수 있다. 결국 UserService를 사용하는 Application은 다음과 같은 형태가 된다.
+
+```java
+UserRepository userRepository = new JdbcUserRepository(dataSource);
+PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+UserService userService = new UserServiceImpl(userRepository, passwordEncoder);
+```
+
+__어떤 클래스가 필요로 하는 컴포넌트를 외부에서 생성한 후, 내부에서 사용 가능하게 만들어 주는 과정을 '의존성을 주임(DI)한다' 또는 '인젝션(Injection) 한다'라고 한다.__ 그리고 이러한 의존성 주입을 자동으로 처리하는 기반을 '__DI 컨테이너__'라고 한다. </br>
+
+스프링 프레임워크가 제공하는 기능 중 가장 중요한 것이 바로 이 DI 컨테이너의 기능이다. 스프링 프레임워크의 DI 컨테이너에 UserRepository, PasswordEncoder의 인터페이스와 구현 클래스를 알려주고 의존 관계를 정의해주면 __UserServiceImpl이 생성될 때 구현 클래스가 자동으로 생성__ 되어 주입된다. DI 컨테이너에서 UserService를 꺼내오는 코드는 다음과 같다.
+
+```java
+ApplicationContext context = ...; //스프링 DI 컨테이너
+UserService userService = context.getBean(UserService.class);
+```
+
+이렇게 DI 컨테이너를 통해 각 컴포넌트의 인스턴스를 생성하고 통합 관리하면서 얻을 수 있는 장점은 비단 컴포넌트 간의 의존성 해결 뿐만이 아니다. 어떤 컴포넌트는 반드시 단 하나의 인스턴스만 만들어서 재사용되도록 Singleton 객체로 만들어야 하고 어떤 컴포넌트는 매번 필요할 때마다 새로운 인스턴스를 사용하도록 prototype 객체로 만들어야 한다. __이러한 인스턴스의 scope 관리를 DI 컨테이너가 대신한다.__
+
+> __출처 : 스프링 철저 입문 (위키북스)__
