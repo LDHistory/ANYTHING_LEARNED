@@ -39,7 +39,7 @@ System.out.println(r1 && r2); // true
 
 우선 hashCode() 메소드를 실행해서 리턴된 해시코드 값이 같은지를 본다. 해시코드 값이 다르면 다른 객체로 판단하고, 해시코드 값이 같으면 equals() 메소드로 다시 비교한다. 그렇기 때문에 hashCode() 메소드가 true가 나와도 equals()의 리턴값이 다르면 다른 객체가 된다.
 
-![equals 와 hashCode](./equals-and-hashcode.png)
+![equals 와 hashCode](./image/equals-and-hashcode.png)
 > 출처 : https://www.javatpoint.com/equals-and-hashcode-in-java
 ___
 
